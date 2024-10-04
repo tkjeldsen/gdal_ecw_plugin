@@ -1,0 +1,24 @@
+FROM ubuntu:22.04
+
+RUN apt-get update
+RUN apt-get install -y libgdal-dev
+
+COPY libecwj2-3.3-2006-09-06.zip .
+COPY libecwj2-3.3.patch .
+RUN apt-get install -y unzip patch g++ make wget
+RUN unzip libecwj2-3.3-2006-09-06.zip 
+RUN patch -p0 < libecwj2-3.3.patch
+RUN cd libecwj2-3.3 && ./configure --enable-shared=no && make -j
+WORKDIR /libecwj2-3.3 
+RUN make install
+
+WORKDIR /
+RUN wget https://github.com/OSGeo/gdal/releases/download/v3.4.1/gdal-3.4.1.tar.gz
+RUN tar xf gdal-3.4.1.tar.gz
+
+WORKDIR /gdal-3.4.1
+RUN touch GDALmake.opt
+RUN EXTRA_LIBS="-lecwj2 -lgdal" LD_SHARED=g++ LNK_FLAGS=-shared EXTRA_CFLAGS=-fPIC CPPFLAGS=-I/usr/include/gdal make -C frmts/ecw plugin
+RUN mkdir -p /usr/lib/gdalplugins && cp frmts/ecw/gdal_ECW_JP2ECW.so /usr/lib/gdalplugins
+RUN apt-get install -y gdal-bin
+RUN gdalinfo --formats
