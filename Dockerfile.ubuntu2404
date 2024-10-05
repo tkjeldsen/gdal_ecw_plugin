@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 as build
+FROM ubuntu:24.04 as build
 
 RUN apt-get update
 RUN apt-get install -y libgdal-dev
@@ -13,22 +13,23 @@ WORKDIR /libecwj2-3.3
 RUN make install
 
 WORKDIR /
-RUN wget https://github.com/OSGeo/gdal/releases/download/v3.4.1/gdal-3.4.1.tar.gz
-RUN tar xf gdal-3.4.1.tar.gz
+RUN wget https://github.com/OSGeo/gdal/releases/download/v3.8.4/gdal-3.8.4.tar.gz
+RUN tar xf gdal-3.8.4.tar.gz
 
-WORKDIR /gdal-3.4.1
+WORKDIR /gdal-3.8.4
 RUN touch GDALmake.opt
-WORKDIR /gdal-3.4.1/frmts/ecw
+WORKDIR /gdal-3.8.4/frmts/ecw
+COPY GNUmakefile .
 RUN CFLAGS=-O3 CXXFLAGS=-O3 EXTRA_LIBS="-lecwj2 -lgdal" LD_SHARED=g++ LNK_FLAGS=-shared EXTRA_CFLAGS=-fPIC CPPFLAGS=-I/usr/include/gdal make plugin
-RUN mkdir -p gdal-ecw-plugin/usr/lib/gdalplugins && cp gdal_ECW_JP2ECW.so gdal-ecw-plugin/usr/lib/gdalplugins
+RUN mkdir -p gdal-ecw-plugin/usr/lib/x86_64-linux-gnu/gdalplugins/ && cp gdal_ECW_JP2ECW.so gdal-ecw-plugin/usr/lib/x86_64-linux-gnu/gdalplugins/
 RUN mkdir -p gdal-ecw-plugin/DEBIAN
 COPY control gdal-ecw-plugin/DEBIAN/
-RUN echo "Depends: libgdal30" >> gdal-ecw-plugin/DEBIAN/control
+RUN echo "Depends: libgdal34t64" >> gdal-ecw-plugin/DEBIAN/control
 RUN dpkg-deb --build gdal-ecw-plugin
 RUN mv gdal-ecw-plugin.deb gdal-ecw-plugin_3.3-$(lsb_release -c -s)_amd64.deb
 RUN dpkg -i gdal-ecw-plugin*.deb
 
 FROM scratch as artifact
-COPY --from=build /gdal-3.4.1/frmts/ecw/gdal-ecw-plugin*.deb .
+COPY --from=build /gdal-3.8.4/frmts/ecw/gdal-ecw-plugin*.deb .
 
 FROM build

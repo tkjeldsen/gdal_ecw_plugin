@@ -1,0 +1,5 @@
+Package: gdal-ecw-plugin
+Version: 3.3
+Maintainer: Thomas Kjeldsen
+Architecture: amd64
+Description: gdal ecw plugin
